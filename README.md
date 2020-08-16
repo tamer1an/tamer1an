@@ -1,4 +1,11 @@
-### Hi there 👋
+### Hi there 👋 Welcome 
+
+--------
+
+#### Check out [Octo-Free](https://chrome.google.com/webstore/detail/octo-free/japafjdhbmaapfhklkppbigmkioikboe):
+https://github.com/tamer1an/octo-free is a free fork of Octotree extension v2 
+
+:penguin: :books:
 
 <!--
 **tamer1an/tamer1an** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
