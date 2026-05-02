@@ -17,7 +17,7 @@
 
 Full-stack engineer with deep roots across the JavaScript ecosystem, backend systems, embedded hardware, and creative tech. I document what I learn as [mind maps](#knowledge-maps) — a growing archive spanning 15+ domains from browser internals to BigData pipelines. Currently building payments infrastructure at Mastercard.
 
-Participating in open source activities [Google Developer program](https://me.developers.google.com/u/107605287507637357817) member
+Member of [Google Developer program](https://me.developers.google.com/u/107605287507637357817).
 My code is [preserved in the GitHub Arctic Code Vault](https://archiveprogram.github.com/) — a snapshot stored 250 m underground in Svalbard for future generations.
 
 ---
@@ -25,6 +25,7 @@ My code is [preserved in the GitHub Arctic Code Vault](https://archiveprogram.gi
 ## Knowledge Maps
 
 Mind maps authored in Adobe Illustrator — each one a deep-dive reference for its domain.
+Inspired by open documentation, video tutorials, passed courses e.g [Udemy account](https://www.udemy.com/user/andrii-trybynenko-2/)
 
 | Domain | File | Focus |
 |---|---|---|
