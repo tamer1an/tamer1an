@@ -17,6 +17,7 @@
 
 Full-stack engineer with deep roots across the JavaScript ecosystem, backend systems, embedded hardware, and creative tech. I document what I learn as [mind maps](#knowledge-maps) — a growing archive spanning 15+ domains from browser internals to BigData pipelines. Currently building payments infrastructure at Mastercard.
 
+Participating in open source activities [Google Developer program](https://me.developers.google.com/u/107605287507637357817) member
 My code is [preserved in the GitHub Arctic Code Vault](https://archiveprogram.github.com/) — a snapshot stored 250 m underground in Svalbard for future generations.
 
 ---
