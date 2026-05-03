@@ -130,6 +130,57 @@ A curated collection of browser DevTools snippets for everyday debugging and pro
 
 ---
 
+## Awards & Recognition
+
+<table>
+  <tr>
+    <td align="center" width="170">
+      <a href="https://github.com/tamer1an/tamer1an/assets/956869/43b0463c-486e-4ebe-8a17-06a3d0a3e6b6">
+        <img src="https://github.com/tamer1an/tamer1an/assets/956869/43b0463c-486e-4ebe-8a17-06a3d0a3e6b6" width="150" alt="Award / Diploma" />
+      </a>
+    </td>
+    <td>
+      <strong>🏆 Award / Diploma</strong><br/>
+      Official recognition — diploma or certificate awarded for outstanding achievement in engineering or technology.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="170">
+      <a href="https://user-images.githubusercontent.com/956869/132105943-766965b8-d762-48c7-9fdb-7ef0b3afd0e5.png">
+        <img src="https://user-images.githubusercontent.com/956869/132105943-766965b8-d762-48c7-9fdb-7ef0b3afd0e5.png" width="150" alt="Tech / Hackathon Event" />
+      </a>
+    </td>
+    <td>
+      <strong>🤖 Tech / Hackathon Event</strong><br/>
+      Participation in a technology showcase or hackathon — demonstrating hands-on hardware engineering and creative tech skills.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="170">
+      <a href="https://user-images.githubusercontent.com/956869/132124312-f84081cf-50d6-4f80-a2aa-e1935f5c12b7.png">
+        <img src="https://user-images.githubusercontent.com/956869/132124312-f84081cf-50d6-4f80-a2aa-e1935f5c12b7.png" width="150" alt="Pocket 2013 — Top 1% Reader" />
+      </a>
+    </td>
+    <td>
+      <strong>📖 Pocket — Top 1% Reader (2013)</strong><br/>
+      Read 1,243,775 words in Pocket in 2013 — the equivalent of reading <em>The Great Gatsby</em> 27 times. Ranked in the global top 1% of all readers.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="170">
+      <a href="https://user-images.githubusercontent.com/956869/132124252-4b8edffb-eb66-4ba2-ac18-02035a950be8.png">
+        <img src="https://user-images.githubusercontent.com/956869/132124252-4b8edffb-eb66-4ba2-ac18-02035a950be8.png" width="150" alt="Pocket 2014 — Top 5% Reader" />
+      </a>
+    </td>
+    <td>
+      <strong>📖 Pocket — Top 5% Reader (2014)</strong><br/>
+      Read 894,051 words in Pocket in 2014 — nearly 19 books — ranking in the global top 5% of readers worldwide.
+    </td>
+  </tr>
+</table>
+
+---
+
 <div align="center">
 
 📫 **Reach me on [LinkedIn](https://www.linkedin.com/in/andriitrybynenko/)** · **[GitHub @tamer1an](https://github.com/tamer1an)**
