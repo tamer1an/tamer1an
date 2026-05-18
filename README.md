@@ -163,7 +163,7 @@ A curated collection of browser DevTools snippets for everyday debugging and pro
     </td>
     <td>
       <strong>📖 Pocket — Top 1% Reader (2013)</strong><br/>
-      Read 1,243,775 words in Pocket in 2013 — the equivalent of reading <em>The Great Gatsby</em> 27 times. Ranked in the global top 1% of all readers.
+      [Read 1,243,775 words in Pocket in 2013](https://gist.githubusercontent.com/tamer1an/d3cf5cdbec1b41112d4ed8bd8bdebcf8/raw/b355a59adaeb98ed1bbe5e9d120b9029a43de253/part_1.csv) — the equivalent of reading <em>The Great Gatsby</em> 27 times. Ranked in the global top 1% of all readers.
     </td>
   </tr>
   <tr>
@@ -174,7 +174,7 @@ A curated collection of browser DevTools snippets for everyday debugging and pro
     </td>
     <td>
       <strong>📖 Pocket — Top 5% Reader (2014)</strong><br/>
-      Read 894,051 words in Pocket in 2014 — nearly 19 books — ranking in the global top 5% of readers worldwide.
+      [Read 894,051 words in Pocket in 2014](https://gist.githubusercontent.com/tamer1an/d3cf5cdbec1b41112d4ed8bd8bdebcf8/raw/b355a59adaeb98ed1bbe5e9d120b9029a43de253/part_2.csv) — nearly 19 books — ranking in the global top 5% of readers worldwide.
     </td>
   </tr>
 </table>
