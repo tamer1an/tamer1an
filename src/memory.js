@@ -32,8 +32,13 @@ const toMemory = (row) => row && { ...row, tags: row.tags ? row.tags.split(',') 
  * Pure word tokens of 4+ chars also match as a prefix ("headun" → headunit); the exact term stays in
  * the query so whole-word hits outrank prefix-only hits. Stemming comes from the porter tokenizer.
  */
+const MAX_QUERY_TOKENS = 32; // a pasted log line must not become hundreds of OR clauses
+
 export function ftsQuery(text) {
-  const words = String(text).match(/[\p{L}\p{N}_.-]+/gu) ?? [];
+  const seen = new Set();
+  const words = (String(text).match(/[\p{L}\p{N}_.-]+/gu) ?? [])
+    .filter((w) => !seen.has(w.toLowerCase()) && seen.add(w.toLowerCase()))
+    .slice(0, MAX_QUERY_TOKENS);
   return words
     .map((w) => {
       const quoted = `"${w.replaceAll('"', '""')}"`;

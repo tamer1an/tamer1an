@@ -56,8 +56,8 @@ export function openDb(path = DEFAULT_DB) {
   const db = new DatabaseSync(path);
   // DELETE journal: WAL's shared-memory file is unreliable on drvfs (/mnt/*) and across Windows+WSL.
   db.exec('PRAGMA journal_mode=DELETE; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;');
+  db.exec(SCHEMA); // CREATE ... IF NOT EXISTS leaves an old memories_fts in place; migrate it next
   migrateFts(db);
-  db.exec(SCHEMA);
   if (path !== ':memory:') cache.set(path, db);
   return db;
 }

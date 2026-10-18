@@ -74,3 +74,10 @@ test('search across several scopes, or all scopes with scope "*"', () => {
   assert.equal(b.search('adb', { scope: 'nowhere' }).length, 0);
   assert.equal(b.search('adb', { scope: '*' }).length, 2);
 });
+
+test('ftsQuery de-duplicates and caps tokens so long inputs stay bounded (argon review)', () => {
+  assert.equal(ftsQuery('Serial serial SERIAL'), '("Serial" OR "Serial"*)');
+  const long = Array.from({ length: 200 }, (_, i) => `word${i}`).join(' ');
+  assert.equal(ftsQuery(long).split(' OR "word').length - 1 <= 64, true);
+  assert.equal((ftsQuery(long).match(/\(/g) ?? []).length, 32);
+});

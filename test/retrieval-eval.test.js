@@ -22,6 +22,8 @@ const CORPUS = {
   M10: ['Deterministic test runner setup', 'Run unit test suites with Node built-in runner.', 'testing,node'],
   M11: ['Gradle offline cache corruption', 'Clear corrupted lockfiles in .gradle when builds hang.', 'gradle,build'],
   M12: ['Rotary controller keycodes', 'Map scroll wheel key events for dashboard navigation.', 'input,rotary'],
+  // Prefix-only distractor for 'tests' (argon review): exact stem must outrank it.
+  M13: ['Testament of the old build box', 'Notes left by the previous maintainer of the build machine.', 'history'],
 };
 
 const QUERIES = [
