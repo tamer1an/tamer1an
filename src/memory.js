@@ -51,11 +51,13 @@ const STOP = new Set('a an and are as at be by for from in into is it of on or s
 
 /** Light suffix stemmer for similarity (FTS5 does real porter stemming for search). */
 function stem(w) {
+  if (w.length > 4 && w.endsWith('ies')) return `${w.slice(0, -3)}y`; // retries → retry
   let s = w;
   if (s.length > 5 && s.endsWith('ing')) s = s.slice(0, -3);
   else if (s.length > 4 && s.endsWith('ed')) s = s.slice(0, -2);
   else if (s.length > 3 && s.endsWith('s') && !s.endsWith('ss')) s = s.slice(0, -1);
   if (s !== w && /([b-df-hj-np-tv-z])\1$/.test(s)) s = s.slice(0, -1); // stripping → stripp → strip
+  if (s.length > 3 && s.endsWith('e') && !s.endsWith('ee')) s = s.slice(0, -1); // cache/caching → cach
   return s;
 }
 

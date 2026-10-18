@@ -41,3 +41,12 @@ test('distillInto skips same-fact candidates and in-batch repeats, keeps new fac
   assert.deepEqual(saved.map((s) => s.title), ['ADB wireless pairing port']);
   assert.deepEqual(skipped.map((s) => s.reason), [`similar to ${m.id}`, `similar to ${saved[0].id}`]);
 });
+
+test('stemmer: silent -e and -ies inflections match (argon review of 54e3bed)', () => {
+  const pair = (a, b) => similarity({ title: a }, { title: b });
+  assert.equal(pair('caching', 'cache'), 1);
+  assert.equal(pair('configured', 'configure'), 1);
+  assert.equal(pair('retries', 'retry'), 1);
+  assert.equal(pair('stripping', 'strip'), 1);
+  assert.ok(pair('free', 'fre') < 1, '-ee words keep their e');
+});
