@@ -1,0 +1,7 @@
+{
+  "name": "gist-cdp",
+  "private": true,
+  "type": "module",
+  "description": "Drive a dedicated Chrome profile over CDP to read/create gists for github.com/tamer1an",
+  "dependencies": { "puppeteer-core": "25.12.0" }
+}
