@@ -32,3 +32,7 @@ test('digest ranks by salience, not just recency', () => {
   assert.deepEqual(order, ['old feedback rule', 'fresh in-scope status', 'newest stale-kind status', 'recent global status']);
   assert.equal(b.digest({ scope: 'aa', nowMs: NOW, limit: 2 }).split('\n').length, 2);
 });
+
+test('salience never returns NaN for a malformed date (argon review of 40b3dfe)', () => {
+  assert.equal(salience({ kind: 'feedback', scope: 'global', updated_at: 'garbage' }, { nowMs: NOW }), 3);
+});

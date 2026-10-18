@@ -23,7 +23,7 @@ export function loadRole(name, dir = ROLES_DIR) {
   );
   if (!meta.model) throw new Error(`${file}: model is required`);
   const tools = (meta.tools ?? '').split(',').map((t) => t.trim()).filter(Boolean);
-  return { name, model: meta.model, tools, description: meta.description ?? '', prompt: m[2].trim() };
+  return { name, model: meta.model, tools, thinking: meta.thinking, description: meta.description ?? '', prompt: m[2].trim() };
 }
 
 /** Bank identity for a role: the role name if it is a team member, else derived from the model. */
@@ -40,6 +40,8 @@ export function piArgs(role, task) {
   return [
     '-p', '--no-session', '--offline',
     '--model', role.model,
+    // Slow reasoning models (DeepSeek-R1 ~3 tok/s) burn the whole timeout on hidden thinking otherwise.
+    ...(role.thinking ? ['--thinking', role.thinking] : []),
     '--append-system-prompt', role.prompt,
     ...(role.tools.length ? ['--tools', role.tools.join(',')] : ['--no-tools']),
     '--', task,

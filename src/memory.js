@@ -96,7 +96,8 @@ const DAY_MS = 86_400_000;
  * Project status goes stale fast (14-day half-life); rules and references slowly (90 days).
  */
 export function salience(m, { scope, nowMs = Date.now() } = {}) {
-  const ageDays = Math.max(0, (nowMs - Date.parse(m.updated_at)) / DAY_MS);
+  const ts = Date.parse(m.updated_at);
+  const ageDays = Number.isFinite(ts) ? Math.max(0, (nowMs - ts) / DAY_MS) : 0; // bad date must not yield NaN
   const halfLife = m.kind === 'project' ? 14 : 90;
   const boost = scope && scope !== 'global' && m.scope === scope ? 1 : 0;
   return (KIND_WEIGHT[m.kind] ?? 1) * 0.5 ** (ageDays / halfLife) + boost;
@@ -222,7 +223,7 @@ export function createMemoryBank(db = openDb()) {
      * so durable rules are not crowded out by recent status notes as the bank grows.
      */
     digest({ scope, limit = 40, nowMs = Date.now() } = {}) {
-      const items = this.list({ scope, limit: 200 })
+      const items = this.list({ scope, limit: 1000 }) // score everything: a 200 cut by recency could hide old rules
         .map((m) => ({ m, s: salience(m, { scope, nowMs }) }))
         .sort((a, b) => b.s - a.s || b.m.updated_at.localeCompare(a.m.updated_at))
         .slice(0, limit)

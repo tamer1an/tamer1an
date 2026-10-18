@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 const dir = mkdtempSync(join(tmpdir(), 'bank-roles-'));
 writeFileSync(join(dir, 'local.md'), '---\nname: local\ndescription: d\ntools: read, memory_search\nmodel: ollama/llama3.1-8k\n---\n\nYou are local.\n');
-writeFileSync(join(dir, 'local-deep.md'), '---\nname: local-deep\nmodel: ollama/deepseek-r1-32b-low-mem\n---\nThink hard.\n');
+writeFileSync(join(dir, 'local-deep.md'), '---\nname: local-deep\nmodel: ollama/deepseek-r1-32b-low-mem\nthinking: off\n---\nThink hard.\n');
 writeFileSync(join(dir, 'broken.md'), 'no frontmatter');
 // Stub "pi": echoes its argv as JSON and BANK_AGENT, so we test wiring without a model.
 const stub = join(dir, 'pi-stub');
@@ -64,4 +64,10 @@ test('retries when a small model leaks a tool call as text', async () => {
   const r = await runRole('local', 'LEAK it', { retries: 2 });
   assert.equal(r.attempts, 3, 'stub always leaks: 1 try + 2 retries');
   assert.equal((await runRole('local', 'fine')).attempts, 1);
+});
+
+test('role thinking level is passed to pi (local-deep runs with thinking off)', () => {
+  const args = piArgs(loadRole('local-deep'), 't');
+  assert.deepEqual(args.slice(args.indexOf('--thinking'), args.indexOf('--thinking') + 2), ['--thinking', 'off']);
+  assert.ok(!piArgs(loadRole('local'), 't').includes('--thinking'));
 });
