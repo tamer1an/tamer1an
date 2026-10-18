@@ -163,7 +163,12 @@ export function createMemoryBank(db = openDb()) {
       if (SECRET.test(`${m.title}\n${m.body}`)) throw new Error('refusing to store what looks like a secret/credential');
       return tx(db, () => {
         if (supersedes) {
-          if (!get(supersedes)) throw new Error(`no memory ${supersedes} to supersede`);
+          const old = get(supersedes);
+          if (!old) throw new Error(`no memory ${supersedes} to supersede`);
+          if (old.status === 'archived') {
+            const winnerId = db.prepare('SELECT id FROM memories WHERE supersedes=? ORDER BY created_at DESC LIMIT 1').get(supersedes)?.id ?? 'unknown';
+            throw new Error(`memory ${supersedes} was already superseded by ${winnerId}`);
+          }
           setStatus(supersedes, 'archived');
         }
         db.prepare(

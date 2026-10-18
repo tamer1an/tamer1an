@@ -81,3 +81,16 @@ test('ftsQuery de-duplicates and caps tokens so long inputs stay bounded (argon 
   assert.equal(ftsQuery(long).split(' OR "word').length - 1 <= 64, true);
   assert.equal((ftsQuery(long).match(/\(/g) ?? []).length, 32);
 });
+
+test('supersedes refuses an already-archived memory and names the winning replacement id', () => {
+  const b = bank();
+  const a = b.save(base);
+  const mB = b.save({ ...base, body: 'Replacement B', supersedes: a.id });
+  assert.throws(
+    () => b.save({ ...base, body: 'Competing replacement C', supersedes: a.id }),
+    new RegExp(`memory ${a.id} was already superseded by ${mB.id}`),
+  );
+  assert.equal(b.get(a.id).status, 'archived');
+  assert.equal(b.get(mB.id).status, 'active');
+  assert.deepEqual(b.list().map((m) => m.id), [mB.id]);
+});
