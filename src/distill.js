@@ -68,20 +68,22 @@ export async function proposeMemories(text, { model = DEFAULT_MODEL, fetchImpl =
   return (parsed.memories ?? []).filter((m) => KINDS.includes(m?.kind) && m.title?.trim() && m.body?.trim()).slice(0, 8);
 }
 
-/** Propose + save as 'local' (→ proposed). Skips candidates whose title already exists. Returns { saved, skipped }. */
+/**
+ * Propose + save as 'local' (→ proposed). Skips candidates similar to an existing active/proposed
+ * memory — including ones saved earlier in the same batch. Returns { saved, skipped }.
+ */
 export async function distillInto(bank, text, { scope = 'global', source = null, ...opts } = {}) {
   const candidates = await proposeMemories(text, opts);
-  const existing = new Set([...bank.list({ scope, limit: 1000 }), ...bank.list({ scope, status: 'proposed', limit: 1000 })].map((m) => m.title.toLowerCase()));
   const saved = [];
   const skipped = [];
   for (const c of candidates) {
-    if (existing.has(c.title.trim().toLowerCase())) {
-      skipped.push({ title: c.title, reason: 'duplicate title' });
+    const [dup] = bank.findSimilar(c, { scope, limit: 1 });
+    if (dup) {
+      skipped.push({ title: c.title, reason: `similar to ${dup.id}` });
       continue;
     }
     try {
       saved.push(bank.save({ ...c, scope, author: 'local', source }));
-      existing.add(c.title.trim().toLowerCase());
     } catch (err) {
       skipped.push({ title: c.title, reason: err.message });
     }

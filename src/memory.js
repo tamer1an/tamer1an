@@ -27,13 +27,13 @@ const normTags = (tags) =>
 
 const toMemory = (row) => row && { ...row, tags: row.tags ? row.tags.split(',') : [] };
 
+const MAX_QUERY_TOKENS = 32; // a pasted log line must not become hundreds of OR clauses
+
 /**
  * FTS5 query from free text: each word quoted (no syntax injection), OR-ed for recall, ranked by bm25.
  * Pure word tokens of 4+ chars also match as a prefix ("headun" → headunit); the exact term stays in
  * the query so whole-word hits outrank prefix-only hits. Stemming comes from the porter tokenizer.
  */
-const MAX_QUERY_TOKENS = 32; // a pasted log line must not become hundreds of OR clauses
-
 export function ftsQuery(text) {
   const seen = new Set();
   const words = (String(text).match(/[\p{L}\p{N}_.-]+/gu) ?? [])
@@ -45,6 +45,44 @@ export function ftsQuery(text) {
       return /^[\p{L}\p{N}_]{4,}$/u.test(w) ? `(${quoted} OR ${quoted}*)` : quoted;
     })
     .join(' OR ');
+}
+
+const STOP = new Set('a an and are as at be by for from in into is it of on or so the then this to use when with'.split(' '));
+
+/** Light suffix stemmer for similarity (FTS5 does real porter stemming for search). */
+function stem(w) {
+  let s = w;
+  if (s.length > 5 && s.endsWith('ing')) s = s.slice(0, -3);
+  else if (s.length > 4 && s.endsWith('ed')) s = s.slice(0, -2);
+  else if (s.length > 3 && s.endsWith('s') && !s.endsWith('ss')) s = s.slice(0, -1);
+  if (s !== w && /([b-df-hj-np-tv-z])\1$/.test(s)) s = s.slice(0, -1); // stripping → stripp → strip
+  return s;
+}
+
+/** Token → weight map. Title tokens weigh 2, body tokens 1 (max per token). */
+function weights({ title = '', body = '' }) {
+  const out = new Map();
+  for (const [text, w] of [[title, 2], [body, 1]]) {
+    for (const raw of String(text).toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []) {
+      if (raw.length < 2 || STOP.has(raw)) continue;
+      const t = stem(raw);
+      out.set(t, Math.max(out.get(t) ?? 0, w));
+    }
+  }
+  return out;
+}
+
+/** Weighted Jaccard similarity of two memories' title+body, 0..1. */
+export function similarity(a, b) {
+  const wa = weights(a);
+  const wb = weights(b);
+  let min = 0;
+  let max = 0;
+  for (const t of new Set([...wa.keys(), ...wb.keys()])) {
+    min += Math.min(wa.get(t) ?? 0, wb.get(t) ?? 0);
+    max += Math.max(wa.get(t) ?? 0, wb.get(t) ?? 0);
+  }
+  return max ? min / max : 0;
 }
 
 export function createMemoryBank(db = openDb()) {
@@ -67,8 +105,27 @@ export function createMemoryBank(db = openDb()) {
   return {
     get,
 
-    /** Save a memory. `supersedes` archives the old one in the same transaction. */
-    save({ title, body, kind = 'project', scope = 'global', tags = '', author, source = null, supersedes = null }) {
+    /**
+     * Memories in `scope` (plus global; active + proposed) whose title+body overlap the candidate,
+     * as [{ ...memory, similarity }] with similarity >= threshold, most similar first.
+     */
+    findSimilar({ title = '', body = '' }, { scope, threshold = 0.45, limit = 5 } = {}) {
+      return this.search(`${title} ${body}`, { scope, includeProposed: true, limit: 25 })
+        .map((m) => ({ ...m, similarity: similarity({ title, body }, m) }))
+        .filter((m) => m.similarity >= threshold)
+        .sort((x, y) => y.similarity - x.similarity)
+        .slice(0, limit);
+    },
+
+    /**
+     * Save a memory. `supersedes` archives the old one in the same transaction.
+     * `dedupe: true` refuses a near-duplicate (similarity >= 0.75) unless it supersedes something.
+     */
+    save({ title, body, kind = 'project', scope = 'global', tags = '', author, source = null, supersedes = null, dedupe = false }) {
+      if (dedupe && !supersedes) {
+        const [dup] = this.findSimilar({ title, body }, { scope, threshold: 0.75, limit: 1 });
+        if (dup) throw new Error(`similar to ${dup.id} ("${dup.title}", ${dup.similarity.toFixed(2)}): use supersedes to replace it`);
+      }
       if (!AGENTS.includes(author)) throw new Error(`author must be one of ${AGENTS.join(', ')}`);
       if (!KINDS.includes(kind)) throw new Error(`kind must be one of ${KINDS.join(', ')}`);
       const m = {

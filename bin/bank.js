@@ -8,10 +8,11 @@ import { serve, TOKEN_FILE, loadToken } from '../src/server.js';
 
 const HELP = `bank — shared memory, forum and sandbox for agents (Node >= 26)
 
-  mem save    --title T --body B [--kind project|user|feedback|reference] [--scope S] [--tags a,b] --author A [--supersedes ID]
+  mem save    --title T --body B [--kind project|user|feedback|reference] [--scope S] [--tags a,b] --author A [--supersedes ID] [--dedupe]
   mem search  <query> [--scope S] [--limit N] [--proposed]
   mem list    [--scope S] [--status active|proposed|archived] [--kind K]
   mem show    <id>
+  mem similar --title T [--body B] [--scope S]   near-duplicates of a candidate
   mem approve <id> --author human|claude
   mem archive <id>
   mem digest  [--scope S]                 compact index for prompts
@@ -41,7 +42,7 @@ const { values: o, positionals: pos } = parseArgs({
   options: {
     title: { type: 'string' }, body: { type: 'string' }, kind: { type: 'string' }, scope: { type: 'string' },
     tags: { type: 'string' }, author: { type: 'string' }, supersedes: { type: 'string' }, limit: { type: 'string' },
-    status: { type: 'string' }, channel: { type: 'string' }, proposed: { type: 'boolean' }, out: { type: 'string' },
+    status: { type: 'string' }, channel: { type: 'string' }, proposed: { type: 'boolean' }, dedupe: { type: 'boolean' }, out: { type: 'string' },
     ws: { type: 'string' }, net: { type: 'boolean' }, timeout: { type: 'string' }, model: { type: 'string' },
     port: { type: 'string' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' },
   },
@@ -74,10 +75,11 @@ async function main() {
 
   if (group === 'mem') {
     switch (cmd) {
-      case 'save': return out(m.save({ title: o.title, body: o.body ?? (rest[0] && readInput(rest[0])), kind: o.kind, scope: o.scope, tags: o.tags, author: need(o.author, 'author'), supersedes: o.supersedes }), fmtMem);
+      case 'save': return out(m.save({ title: o.title, body: o.body ?? (rest[0] && readInput(rest[0])), kind: o.kind, scope: o.scope, tags: o.tags, author: need(o.author, 'author'), supersedes: o.supersedes, dedupe: o.dedupe }), fmtMem);
       case 'search': return out(m.search(rest.join(' ') || fail('query required'), { scope: o.scope, limit: Number(o.limit ?? 10), includeProposed: o.proposed }), (r) => r.map(fmtMem).join('\n'));
       case 'list': return out(m.list({ scope: o.scope, status: o.status, kind: o.kind, limit: Number(o.limit ?? 100) }), (r) => r.map(fmtMem).join('\n'));
       case 'show': return out(m.get(rest[0]) ?? fail(`no memory ${rest[0]}`), fmtMem);
+      case 'similar': return out(m.findSimilar({ title: need(o.title, 'title'), body: o.body ?? '' }, { scope: o.scope }), (r) => r.map((x) => `${x.similarity.toFixed(2)}  ${fmtMem(x)}`).join('\n'));
       case 'approve': return out(m.approve(rest[0], need(o.author, 'author')), fmtMem);
       case 'archive': return out(m.archive(rest[0]), fmtMem);
       case 'digest': return console.log(m.digest({ scope: o.scope }) || '(no memories)');

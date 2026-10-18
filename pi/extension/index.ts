@@ -92,7 +92,8 @@ export default function agentBank(pi: ExtensionAPI) {
 		async execute(_id, params: any, _signal, _onUpdate, ctx: any) {
 			// Author is the calling model, never a parameter: a model cannot claim to be 'claude' to skip review.
 			const { global, ...fields } = params;
-			const m = getBank().memory.save({ ...fields, scope: global ? "global" : scopeFor(ctx.cwd), author: agentFor(ctx.model), source: "pi" });
+			// dedupe: a near-duplicate is refused with the existing id, so the model can supersede it instead.
+			const m = getBank().memory.save({ ...fields, scope: global ? "global" : scopeFor(ctx.cwd), author: agentFor(ctx.model), source: "pi", dedupe: true });
 			return text(`Saved ${m.id} (${m.status}${m.status === "proposed" ? " — needs approval by human/claude" : ""}).`, m);
 		},
 	});
