@@ -94,3 +94,25 @@ test('supersedes refuses an already-archived memory and names the winning replac
   assert.equal(b.get(mB.id).status, 'active');
   assert.deepEqual(b.list().map((m) => m.id), [mB.id]);
 });
+
+test('proposed supersede does not archive target until approved; conflicts on approve if target was superseded meanwhile', () => {
+  const b = bank();
+  const a = b.save(base);
+  const prop = b.save({ ...base, body: 'Local proposal B', author: 'local', supersedes: a.id });
+  assert.equal(prop.status, 'proposed');
+  assert.equal(b.get(a.id).status, 'active');
+  assert.deepEqual(b.search('adb').map((m) => m.id), [a.id]);
+
+  const approved = b.approve(prop.id, 'human');
+  assert.equal(approved.status, 'active');
+  assert.equal(b.get(a.id).status, 'archived');
+
+  const staleProp = b.save({ ...base, body: 'Local proposal on approved', author: 'local', supersedes: approved.id });
+  const winner = b.save({ ...base, body: 'Claude supersede wins', author: 'claude', supersedes: approved.id });
+  assert.throws(
+    () => b.approve(staleProp.id, 'human'),
+    new RegExp(`memory ${approved.id} was already superseded by ${winner.id}`),
+  );
+  assert.equal(b.get(staleProp.id).status, 'proposed');
+});
+

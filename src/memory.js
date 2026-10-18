@@ -120,6 +120,16 @@ export function createMemoryBank(db = openDb()) {
     return toMemory(row);
   }
 
+  function checkSupersedes(id) {
+    const old = get(id);
+    if (!old) throw new Error(`no memory ${id} to supersede`);
+    if (old.status === 'archived') {
+      // Exclude unapproved proposals so a pending proposal never reports itself as the winner.
+      const winnerId = db.prepare("SELECT id FROM memories WHERE supersedes=? AND status!='proposed' ORDER BY rowid DESC LIMIT 1").get(id)?.id ?? 'unknown';
+      throw new Error(`memory ${id} was already superseded by ${winnerId}`);
+    }
+  }
+
   return {
     get,
 
@@ -136,7 +146,7 @@ export function createMemoryBank(db = openDb()) {
     },
 
     /**
-     * Save a memory. `supersedes` archives the old one in the same transaction.
+     * Save a memory. `supersedes` archives the old one in the same transaction (or on approve if proposed).
      * `dedupe: true` refuses a near-duplicate (similarity >= 0.75) unless it supersedes something.
      */
     save({ title, body, kind = 'project', scope = 'global', tags = '', author, source = null, supersedes = null, dedupe = false }) {
@@ -163,13 +173,8 @@ export function createMemoryBank(db = openDb()) {
       if (SECRET.test(`${m.title}\n${m.body}`)) throw new Error('refusing to store what looks like a secret/credential');
       return tx(db, () => {
         if (supersedes) {
-          const old = get(supersedes);
-          if (!old) throw new Error(`no memory ${supersedes} to supersede`);
-          if (old.status === 'archived') {
-            const winnerId = db.prepare('SELECT id FROM memories WHERE supersedes=? ORDER BY created_at DESC LIMIT 1').get(supersedes)?.id ?? 'unknown';
-            throw new Error(`memory ${supersedes} was already superseded by ${winnerId}`);
-          }
-          setStatus(supersedes, 'archived');
+          checkSupersedes(supersedes);
+          if (m.status === 'active') setStatus(supersedes, 'archived');
         }
         db.prepare(
           `INSERT INTO memories(id,scope,kind,title,body,tags,author,status,source,supersedes,created_at,updated_at)
@@ -213,10 +218,16 @@ export function createMemoryBank(db = openDb()) {
 
     approve(id, approver) {
       if (!APPROVERS.has(approver)) throw new Error(`only ${[...APPROVERS].join('/')} can approve memories`);
-      const m = get(id);
-      if (!m) throw new Error(`no memory ${id}`);
-      if (m.status !== 'proposed') throw new Error(`memory ${id} is ${m.status}, not proposed`);
-      return setStatus(id, 'active');
+      return tx(db, () => {
+        const m = get(id);
+        if (!m) throw new Error(`no memory ${id}`);
+        if (m.status !== 'proposed') throw new Error(`memory ${id} is ${m.status}, not proposed`);
+        if (m.supersedes) {
+          checkSupersedes(m.supersedes);
+          setStatus(m.supersedes, 'archived');
+        }
+        return setStatus(id, 'active');
+      });
     },
 
     archive(id) {
