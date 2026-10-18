@@ -27,10 +27,19 @@ const normTags = (tags) =>
 
 const toMemory = (row) => row && { ...row, tags: row.tags ? row.tags.split(',') : [] };
 
-/** FTS5 query from free text: each word quoted (no syntax injection), OR-ed for recall, ranked by bm25. */
+/**
+ * FTS5 query from free text: each word quoted (no syntax injection), OR-ed for recall, ranked by bm25.
+ * Pure word tokens of 4+ chars also match as a prefix ("headun" → headunit); the exact term stays in
+ * the query so whole-word hits outrank prefix-only hits. Stemming comes from the porter tokenizer.
+ */
 export function ftsQuery(text) {
   const words = String(text).match(/[\p{L}\p{N}_.-]+/gu) ?? [];
-  return words.map((w) => `"${w.replaceAll('"', '""')}"`).join(' OR ');
+  return words
+    .map((w) => {
+      const quoted = `"${w.replaceAll('"', '""')}"`;
+      return /^[\p{L}\p{N}_]{4,}$/u.test(w) ? `(${quoted} OR ${quoted}*)` : quoted;
+    })
+    .join(' OR ');
 }
 
 export function createMemoryBank(db = openDb()) {

@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS memories (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
-CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(id UNINDEXED, title, body, tags);
+CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(id UNINDEXED, title, body, tags, tokenize = 'porter unicode61');
 CREATE TABLE IF NOT EXISTS threads (
   id TEXT PRIMARY KEY,
   channel TEXT NOT NULL DEFAULT 'general',
@@ -56,9 +56,21 @@ export function openDb(path = DEFAULT_DB) {
   const db = new DatabaseSync(path);
   // DELETE journal: WAL's shared-memory file is unreliable on drvfs (/mnt/*) and across Windows+WSL.
   db.exec('PRAGMA journal_mode=DELETE; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;');
+  migrateFts(db);
   db.exec(SCHEMA);
   if (path !== ':memory:') cache.set(path, db);
   return db;
+}
+
+/** Rebuild a pre-porter memories_fts (stemming added 2026-10-18) from the memories table. */
+function migrateFts(db) {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='memories_fts'").get();
+  if (!row || /porter/i.test(row.sql)) return;
+  tx(db, () => {
+    db.exec('DROP TABLE memories_fts');
+    db.exec("CREATE VIRTUAL TABLE memories_fts USING fts5(id UNINDEXED, title, body, tags, tokenize = 'porter unicode61')");
+    db.exec("INSERT INTO memories_fts(id, title, body, tags) SELECT id, title, body, tags FROM memories WHERE status != 'archived'");
+  });
 }
 
 export const now = () => new Date().toISOString();
