@@ -63,13 +63,14 @@ export default function agentBank(pi: ExtensionAPI) {
 		label: "Memory search",
 		description: "Full-text search the shared team memory bank (facts, decisions, preferences, references saved by any agent in earlier sessions).",
 		promptSnippet: "Search shared team memory from earlier sessions",
+		// No free-text scope parameter: models guess values like "current project" and filter everything out.
 		parameters: Type.Object({
 			query: Type.String({ description: "Words to search for" }),
-			scope: Type.Optional(Type.String({ description: "Project scope; defaults to the current project (global memories always included)" })),
+			all_projects: Type.Optional(Type.Boolean({ description: "Search every project, not just this one (global memories are always included)" })),
 			include_proposed: Type.Optional(Type.Boolean({ description: "Also return unreviewed memories proposed by the local model" })),
 		}),
 		async execute(_id, params: any, _signal, _onUpdate, ctx: any) {
-			const res = getBank().memory.search(params.query, { scope: params.scope ?? scopeFor(ctx.cwd), includeProposed: params.include_proposed, limit: 10 });
+			const res = getBank().memory.search(params.query, { scope: params.all_projects ? "*" : scopeFor(ctx.cwd), includeProposed: params.include_proposed, limit: 10 });
 			return text(res.length ? res.map(fmt).join("\n") : "No matching memories.", { count: res.length });
 		},
 	});
@@ -85,12 +86,13 @@ export default function agentBank(pi: ExtensionAPI) {
 			body: Type.String({ description: "1-3 concrete sentences; include why it matters" }),
 			kind: Type.Union(KINDS.map((k: string) => Type.Literal(k)), { description: "user | feedback | project | reference" }),
 			tags: Type.Optional(Type.Array(Type.String())),
-			scope: Type.Optional(Type.String({ description: "Defaults to the current project; use 'global' for cross-project facts" })),
+			global: Type.Optional(Type.Boolean({ description: "true for facts that apply to every project; default saves to this project" })),
 			supersedes: Type.Optional(Type.String({ description: "id of a memory this replaces (it gets archived)" })),
 		}),
 		async execute(_id, params: any, _signal, _onUpdate, ctx: any) {
 			// Author is the calling model, never a parameter: a model cannot claim to be 'claude' to skip review.
-			const m = getBank().memory.save({ ...params, scope: params.scope ?? scopeFor(ctx.cwd), author: agentFor(ctx.model), source: "pi" });
+			const { global, ...fields } = params;
+			const m = getBank().memory.save({ ...fields, scope: global ? "global" : scopeFor(ctx.cwd), author: agentFor(ctx.model), source: "pi" });
 			return text(`Saved ${m.id} (${m.status}${m.status === "proposed" ? " — needs approval by human/claude" : ""}).`, m);
 		},
 	});

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // bank — CLI for the agent bank. `bank help` for usage. Add --json to any command for raw output.
 import { parseArgs } from 'node:util';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { openBank, runSandboxed, distillInto } from '../src/index.js';
+import { openBank, runSandboxed, distillInto, delegate, loadRole, ROLES_DIR } from '../src/index.js';
 import { serve, TOKEN_FILE, loadToken } from '../src/server.js';
 
 const HELP = `bank — shared memory, forum and sandbox for agents (Node >= 26)
@@ -27,6 +27,9 @@ const HELP = `bank — shared memory, forum and sandbox for agents (Node >= 26)
   sandbox run [--ws NAME] [--net] [--timeout SEC] -- <command...>
 
   distill <file|-> [--scope S] [--model M]   local Ollama model proposes memories
+  delegate <role> <task...> [--author A] [--scope S] [--thread ID] [--timeout SEC]
+                                             run a Pi role (local, local-deep, copilot…) and post the answer
+  roles                                      list team roles and their models
   kv get|set|del|keys <store> [key] [json]
   serve [--port N]                           REST on 127.0.0.1 (token in ${TOKEN_FILE})
   token                                      print the REST token
@@ -114,6 +117,23 @@ async function main() {
     const file = cmd ?? fail('file (or -) required');
     const r = await distillInto(m, readInput(file), { scope: o.scope, model: o.model, source: file === '-' ? 'stdin' : file });
     return out(r, ({ saved, skipped }) => `${saved.length} proposed (review with: bank mem list --status proposed)\n${saved.map(fmtMem).join('\n')}${skipped.length ? `\nskipped: ${skipped.map((s) => `${s.title} (${s.reason})`).join('; ')}` : ''}`);
+  }
+
+  if (group === 'delegate') {
+    const role = cmd ?? fail('role required (bank roles)');
+    const task = rest.join(' ') || fail('task required');
+    const r = await delegate(bank, role, task, { requester: o.author ?? 'human', threadId: o.thread, scope: o.scope, timeoutMs: Number(o.timeout ?? 900) * 1000 });
+    if (o.json) return out(r);
+    console.log(r.output || '(no output)');
+    console.error(`\n[${r.role} as ${r.identity}: ${r.timedOut ? 'timed out' : `exit ${r.code}`}, ${(r.ms / 1000).toFixed(0)}s → forum ${r.threadId}]`);
+    if (r.stderr) console.error(r.stderr.slice(0, 2000));
+    process.exitCode = r.code ?? 124;
+    return;
+  }
+
+  if (group === 'roles') {
+    const roles = readdirSync(ROLES_DIR).filter((f) => f.endsWith('.md')).map((f) => loadRole(f.slice(0, -3)));
+    return out(roles, (r) => r.map((x) => `${x.name.padEnd(11)} ${x.model.padEnd(34)} ${x.description.slice(0, 90)}`).join('\n'));
   }
 
   if (group === 'kv') {

@@ -6,6 +6,7 @@ import { createInstance } from './kv.js';
 
 export { runSandboxed } from './sandbox.js';
 export { distillInto, proposeMemories } from './distill.js';
+export { delegate, runRole, loadRole, ROLES_DIR } from './delegate.js';
 export { KINDS, AGENTS } from './memory.js';
 export { POST_KINDS } from './forum.js';
 

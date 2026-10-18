@@ -65,3 +65,12 @@ test('digest and markdown export for prompts / Claude memory dirs', () => {
   assert.equal(file.file, 'reference_adb_output_has_crlf.md');
   assert.match(file.content, /type: reference/);
 });
+
+test('search across several scopes, or all scopes with scope "*"', () => {
+  const b = bank();
+  b.save({ ...base, scope: 'androidauto' });
+  b.save({ ...base, title: 'adb in other project', scope: 'other' });
+  assert.equal(b.search('adb', { scope: ['androidauto', 'other'] }).length, 2);
+  assert.equal(b.search('adb', { scope: 'nowhere' }).length, 0);
+  assert.equal(b.search('adb', { scope: '*' }).length, 2);
+});

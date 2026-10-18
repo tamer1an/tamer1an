@@ -86,20 +86,24 @@ export function createMemoryBank(db = openDb()) {
       });
     },
 
-    /** Ranked full-text search. Scope filter also includes 'global'. Archived never returned. */
+    /**
+     * Ranked full-text search. `scope`: one scope or an array (each also includes 'global');
+     * undefined or '*' searches everything. Archived never returned.
+     */
     search(text, { scope, limit = 10, includeProposed = false } = {}) {
       const q = ftsQuery(text);
       if (!q) return [];
       const statuses = includeProposed ? ['active', 'proposed'] : ['active'];
+      const scopes = scope == null || scope === '*' ? null : [...new Set([...[scope].flat(), 'global'])];
       const rows = db
         .prepare(
           `SELECT m.*, bm25(memories_fts, 0, 3.0, 1.0, 2.0) AS score
            FROM memories_fts JOIN memories m ON m.id = memories_fts.id
            WHERE memories_fts MATCH ? AND m.status IN (${statuses.map(() => '?').join(',')})
-             AND (? IS NULL OR m.scope IN (?, 'global'))
+             ${scopes ? `AND m.scope IN (${scopes.map(() => '?').join(',')})` : ''}
            ORDER BY score LIMIT ?`,
         )
-        .all(q, ...statuses, scope ?? null, scope ?? null, limit);
+        .all(q, ...statuses, ...(scopes ?? []), limit);
       return rows.map(toMemory);
     },
 

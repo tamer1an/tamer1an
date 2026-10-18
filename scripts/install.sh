@@ -42,10 +42,19 @@ const m = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
 m.providers ??= {};
 const p = (m.providers.ollama ??= { baseUrl: 'http://localhost:11434/v1', api: 'openai-completions', apiKey: 'ollama', models: [] });
 // llama3.1-8k: same weights, num_ctx 8192 so the KV cache fits the 8 GB GPU.
-for (const id of ['llama3.1-8k', 'llama3.1:latest']) if (!p.models.some((x) => x.id === id)) p.models.push({ id, contextWindow: id.endsWith('8k') ? 8192 : 131072 });
+const want = [
+  // qwen3-16k: qwen3:8b with num_ctx 16384 — reliable tool calling, ~14 tok/s, 79% on the 8 GB GPU.
+  { id: 'qwen3-16k', contextWindow: 16384, reasoning: true },
+  { id: 'llama3.1-8k', contextWindow: 8192 },
+  { id: 'llama3.1:latest', contextWindow: 131072 },
+  // DeepSeek-R1 32B: thinking model, no tool support in Ollama; 4096 ctx keeps it loadable (19.9 GB).
+  { id: 'deepseek-r1-32b-low-mem', contextWindow: 4096, reasoning: true },
+  { id: 'deepseek-r1:32b', contextWindow: 4096, reasoning: true },
+];
+for (const w of want) if (!p.models.some((x) => x.id === w.id)) p.models.push(w);
 fs.writeFileSync(file, JSON.stringify(m, null, 2) + '\n');
 EOF
-say models "ollama/llama3.1-8k"
+say models "ollama: llama3.1-8k, deepseek-r1 32B"
 
 # 3. Team roles for the subagent tool (symlinks, so edits in the repo apply immediately).
 for f in "$REPO"/pi/agents/*.md; do ln -sfn "$f" "$PI_DIR/agents/$(basename "$f")"; done

@@ -48,7 +48,7 @@ export function createForum(db = openDb()) {
     read(threadId) {
       const t = thread(threadId);
       if (!t) throw new Error(`no thread ${threadId}`);
-      const posts = db.prepare('SELECT * FROM posts WHERE thread_id=? ORDER BY created_at, id').all(threadId);
+      const posts = db.prepare('SELECT * FROM posts WHERE thread_id=? ORDER BY rowid').all(threadId); // insertion order; created_at ties within a millisecond
       return { ...t, posts };
     },
 
