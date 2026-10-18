@@ -87,6 +87,21 @@ export function similarity(a, b) {
   return max ? min / max : 0;
 }
 
+const KIND_WEIGHT = { feedback: 3, user: 2.5, reference: 2, project: 1 };
+const DAY_MS = 86_400_000;
+
+/**
+ * How much a memory deserves a place in the prompt digest (Park et al. 2023, recency × importance):
+ * kind weight × 0.5^(age / half-life) + 1 when it belongs to the current (non-global) scope.
+ * Project status goes stale fast (14-day half-life); rules and references slowly (90 days).
+ */
+export function salience(m, { scope, nowMs = Date.now() } = {}) {
+  const ageDays = Math.max(0, (nowMs - Date.parse(m.updated_at)) / DAY_MS);
+  const halfLife = m.kind === 'project' ? 14 : 90;
+  const boost = scope && scope !== 'global' && m.scope === scope ? 1 : 0;
+  return (KIND_WEIGHT[m.kind] ?? 1) * 0.5 ** (ageDays / halfLife) + boost;
+}
+
 export function createMemoryBank(db = openDb()) {
   const get = (id) => toMemory(db.prepare('SELECT * FROM memories WHERE id=?').get(id));
 
@@ -202,9 +217,16 @@ export function createMemoryBank(db = openDb()) {
       return setStatus(id, 'archived');
     },
 
-    /** Compact index for injecting into a system prompt: one line per active memory. */
-    digest({ scope, limit = 40 } = {}) {
-      const items = this.list({ scope, limit });
+    /**
+     * Compact index for injecting into a system prompt: one line per active memory, most salient first,
+     * so durable rules are not crowded out by recent status notes as the bank grows.
+     */
+    digest({ scope, limit = 40, nowMs = Date.now() } = {}) {
+      const items = this.list({ scope, limit: 200 })
+        .map((m) => ({ m, s: salience(m, { scope, nowMs }) }))
+        .sort((a, b) => b.s - a.s || b.m.updated_at.localeCompare(a.m.updated_at))
+        .slice(0, limit)
+        .map(({ m }) => m);
       return items.map((m) => `- [${m.kind}] ${m.title} (${m.id}) — ${m.body.split('\n')[0].slice(0, 160)}`).join('\n');
     },
 
