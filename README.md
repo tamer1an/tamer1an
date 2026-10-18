@@ -7,7 +7,7 @@ Design and decisions: [SPEC.md](SPEC.md).
 
 ```bash
 nvm use 26
-npm test                    # 27 tests: kv, memory, forum, sandbox, distill, REST
+npm test                    # 44 tests incl. retrieval eval (Recall@1/@3, MRR)
 scripts/install.sh          # wire into ~/.pi/agent, ~/.claude/skills, ~/.local/bin/bank
 ```
 
@@ -16,10 +16,11 @@ scripts/install.sh          # wire into ~/.pi/agent, ~/.claude/skills, ~/.local/
 | Piece | Code | Use it from |
 |---|---|---|
 | localforage-compatible KV | `src/kv.js` | `import localforage, { createInstance } from 'agent-bank/kv'` · `bank kv` · `/kv/:store/:key` |
-| Memory bank (FTS, trust tiers, supersede) | `src/memory.js` | Pi tools `memory_search`/`memory_save` · `bank mem` · `/memories` |
+| Memory bank (FTS5 porter + prefix, near-dup detection, salience digest, trust tiers) | `src/memory.js` | Pi tools `memory_search`/`memory_save` · `bank mem` · `/memories` |
 | Forum (threads, @mentions, inbox) | `src/forum.js` | Pi tools `forum_post`/`forum_read` · `bank forum` · `/forum/...` |
 | Sandbox (bubblewrap, no net/home/mnt) | `src/sandbox.js` | Pi tool `sandbox_run` · `bank sandbox run` (not on REST, by design) |
-| Distiller (Ollama → proposed memories) | `src/distill.js` | `bank distill <file>` · `local` agent |
+| Distiller (Ollama → proposed memories, skips near-duplicates) | `src/distill.js` | `bank distill <file>` · `local` agent |
+| Offline delegation | `src/delegate.js` | `bank delegate local\|local-deep "<task>" --author <you> --scope <p>` → forum channel `delegate` |
 | REST (127.0.0.1, token, Host check) | `src/server.js` | `bank serve`, header `x-bank-token: $(bank token)` |
 | Pi extension | `pi/extension/index.ts` | injects memory digest + inbox into every run; `/bank` command |
 | Team roles | `pi/agents/*.md` | `subagent` tool; `/team-build`, `/team-review`, `/logcat-digest` |
@@ -38,9 +39,10 @@ scripts/install.sh          # wire into ~/.pi/agent, ~/.claude/skills, ~/.local/
 | Role | Model (edit `pi/agents/<role>.md`) | Status 2026-10-18 |
 |---|---|---|
 | claude | `anthropic/claude-opus-5-5` | Pi → Anthropic needs *extra usage* (third-party app). Claude Code itself works as **claude** via `bank` + skill. |
-| argon | `google/gemini-4-argon` (also `github-copilot/gemini-4-argon`) | Google key is IP-restricted; allow your IP or use the Copilot route. |
+| argon | Antigravity `agy` conversation 1902ba86, Gemini 4 Argon (OAuth) | ✅ works via `agy`; specs + reviews memory slices. Pi route blocked (Google key IP-restricted). |
 | copilot | `github-copilot/gpt-5-mini` | Pi holds a PAT; Copilot needs OAuth → run `pi`, then `/login` → GitHub Copilot. |
-| local | `ollama/llama3.1-8k` | ✅ works — free, offline, ~24 tok/s on RTX 3070 |
+| local | `ollama/qwen3-16k` | ✅ works — free, offline, reliable tool calls, ~14 tok/s |
+| local-deep | `ollama/deepseek-r1-32b-low-mem` | ✅ works — offline reasoning, no tools, ~3 tok/s |
 
 `llama3.1-8k` is `llama3.1` with `num_ctx 8192`: the Ollama app's 128k default puts the whole KV cache
 on CPU (0/33 layers on GPU, ~5 tok/s).

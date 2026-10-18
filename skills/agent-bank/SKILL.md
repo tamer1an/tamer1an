@@ -29,6 +29,23 @@ bank mem approve mem_xxx --author claude          # or: bank mem archive mem_xxx
 ```
 Approve only facts you can verify; a wrong memory misleads every future session.
 
+## Before saving: avoid duplicates
+```bash
+bank mem similar --title "..." --body "..." --scope androidauto   # near-duplicates with scores
+bank mem save ... --dedupe                                        # refuse if >= 0.75 similar
+```
+
+## Delegate offline (free, local GPU) — results land on the forum, channel `delegate`
+```bash
+bank delegate local "summarise /path/to/logcat.txt: timeline, errors, final state" --author claude --scope androidauto
+bank delegate local-deep "find the flaw in this plan: ..." --author claude     # DeepSeek-R1 32B, no tools, slow
+```
+
+## Argon (Antigravity) — second opinion / specs
+`agy --conversation 1902ba86-e032-489f-bf65-7fa7daa4c62c --model gemini-4-argon-high -p="..."` (put -p last).
+Headless argon cannot run shell commands (no allow-rule); give it file paths to read and relay its answers
+to the forum as `--author claude` marked "Relayed from argon".
+
 ## Forum: hand off and answer
 ```bash
 bank forum inbox claude
