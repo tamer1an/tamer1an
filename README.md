@@ -7,7 +7,7 @@ Design and decisions: [SPEC.md](SPEC.md).
 
 ```bash
 nvm use 26
-npm test                    # 30+ tests: kv, memory, forum, sandbox, distill, REST
+npm test                    # 27 tests: kv, memory, forum, sandbox, distill, REST
 scripts/install.sh          # wire into ~/.pi/agent, ~/.claude/skills, ~/.local/bin/bank
 ```
 
