@@ -34,3 +34,9 @@ test('workspace names cannot escape', () => {
   assert.throws(() => workspacePath('../etc'), /workspace name/);
   assert.throws(() => workspacePath(''), /workspace name/);
 });
+
+test('a flooding command is truncated, not buffered whole', async () => {
+  const r = await runSandboxed('head -c 50000000 /dev/zero | tr "\\0" a');
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, new RegExp(`…\\[truncated ${50_000_000 - 64 * 1024} bytes\\]$`));
+});

@@ -5,10 +5,10 @@ import { spawn } from 'node:child_process';
 import { readFileSync, existsSync, realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { AGENTS } from './memory.js';
+import { capture } from './capture.js';
 
 const ROOT = join(import.meta.dirname, '..');
 export const ROLES_DIR = process.env.BANK_ROLES_DIR ?? join(ROOT, 'pi', 'agents');
-const MAX_OUT = 64 * 1024;
 
 /** Parse a role file: YAML-ish frontmatter (name, description, tools, model) + markdown body. */
 export function loadRole(name, dir = ROLES_DIR) {
@@ -60,8 +60,6 @@ export function piCommand(args) {
   return { command: 'pi', args };
 }
 
-const cap = (s) => (s.length > MAX_OUT ? `${s.slice(0, MAX_OUT)}\n…[truncated]` : s);
-
 /** Small local models sometimes print a tool call as text instead of making it. */
 export const leakedToolCall = (out) => /^\s*\{\s*"name"\s*:\s*"[\w-]+"\s*,\s*"(parameters|arguments)"/m.test(out);
 
@@ -92,15 +90,13 @@ function runOnce(roleName, task, { timeoutMs = 15 * 60_000, cwd = process.cwd(),
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, BANK_AGENT: identity, ...(scope && { BANK_SCOPE: scope }) },
     });
-    let out = '';
-    let err = '';
+    const out = capture(child.stdout);
+    const err = capture(child.stderr);
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill('SIGTERM');
     }, timeoutMs);
-    child.stdout.on('data', (d) => (out += d));
-    child.stderr.on('data', (d) => (err += d));
     child.on('error', (e) => {
       clearTimeout(timer);
       reject(e);
@@ -108,8 +104,8 @@ function runOnce(roleName, task, { timeoutMs = 15 * 60_000, cwd = process.cwd(),
     child.on('close', (code) => {
       clearTimeout(timer);
       // Node prints ExperimentalWarning noise on stderr; keep only real lines.
-      const stderr = err.split('\n').filter((l) => l && !/ExperimentalWarning|--trace-warnings/.test(l)).join('\n');
-      resolve({ role: roleName, identity, code, output: cap(out.trim()), stderr: cap(stderr), timedOut, ms: Date.now() - started });
+      const stderr = err.text().split('\n').filter((l) => l && !/ExperimentalWarning|--trace-warnings/.test(l)).join('\n');
+      resolve({ role: roleName, identity, code, output: out.text().trim(), stderr, timedOut, ms: Date.now() - started });
     });
   });
 }

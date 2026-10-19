@@ -4,10 +4,10 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
+import { capture } from './capture.js';
 
 const ROOT = join(import.meta.dirname, '..');
 export const SANDBOX_ROOT = process.env.BANK_SANDBOX_ROOT ?? join(ROOT, 'data', 'sandboxes');
-const MAX_OUT = 64 * 1024;
 
 export function workspacePath(name = 'default') {
   if (!/^[a-z0-9][a-z0-9_-]{0,62}$/i.test(name)) throw new Error('workspace name: letters, digits, - and _ only');
@@ -39,30 +39,26 @@ export function bwrapArgs({ workspace, network = false, nodeDir = dirname(dirnam
   return args;
 }
 
-const cap = (s) => (s.length > MAX_OUT ? `${s.slice(0, MAX_OUT)}\n…[truncated ${s.length - MAX_OUT} chars]` : s);
-
 /** Run `command` (a shell string) in the sandbox. Resolves { code, stdout, stderr, timedOut, workspace }. */
 export function runSandboxed(command, { workspace = 'default', network = false, timeoutMs = 60_000, signal } = {}) {
   const ws = workspacePath(workspace);
   const args = [...bwrapArgs({ workspace: ws, network }), '--', 'bash', '-lc', command];
   return new Promise((resolve, reject) => {
     const child = spawn('bwrap', args, { stdio: ['ignore', 'pipe', 'pipe'], env: { LANG: 'C.UTF-8' }, signal });
-    let stdout = '';
-    let stderr = '';
+    const stdout = capture(child.stdout);
+    const stderr = capture(child.stderr);
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill('SIGKILL');
     }, timeoutMs);
-    child.stdout.on('data', (d) => (stdout += d));
-    child.stderr.on('data', (d) => (stderr += d));
     child.on('error', (err) => {
       clearTimeout(timer);
       reject(err.code === 'ENOENT' ? new Error('bwrap not installed (apt install bubblewrap)') : err);
     });
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolve({ code, stdout: cap(stdout), stderr: cap(stderr), timedOut, workspace: ws });
+      resolve({ code, stdout: stdout.text(), stderr: stderr.text(), timedOut, workspace: ws });
     });
   });
 }
