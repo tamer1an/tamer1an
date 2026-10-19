@@ -92,15 +92,16 @@ const DAY_MS = 86_400_000;
 
 /**
  * How much a memory deserves a place in the prompt digest (Park et al. 2023, recency × importance):
- * kind weight × 0.5^(age / half-life) + 1 when it belongs to the current (non-global) scope.
+ * (kind weight + 1 when it belongs to the current non-global scope) × 0.5^(age / half-life).
  * Project status goes stale fast (14-day half-life); rules and references slowly (90 days).
+ * The scope boost decays too: a flat +1 let a year-old in-scope note outrank every global rule.
  */
 export function salience(m, { scope, nowMs = Date.now() } = {}) {
   const ts = Date.parse(m.updated_at);
   const ageDays = Number.isFinite(ts) ? Math.max(0, (nowMs - ts) / DAY_MS) : 0; // bad date must not yield NaN
   const halfLife = m.kind === 'project' ? 14 : 90;
   const boost = scope && scope !== 'global' && m.scope === scope ? 1 : 0;
-  return (KIND_WEIGHT[m.kind] ?? 1) * 0.5 ** (ageDays / halfLife) + boost;
+  return ((KIND_WEIGHT[m.kind] ?? 1) + boost) * 0.5 ** (ageDays / halfLife);
 }
 
 export function createMemoryBank(db = openDb()) {
