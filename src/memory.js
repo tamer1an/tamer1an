@@ -126,8 +126,8 @@ export function createMemoryBank(db = openDb()) {
     if (!old) throw new Error(`no memory ${id} to supersede`);
     if (old.status === 'archived') {
       // Exclude unapproved proposals so a pending proposal never reports itself as the winner.
-      const winnerId = db.prepare("SELECT id FROM memories WHERE supersedes=? AND status!='proposed' ORDER BY rowid DESC LIMIT 1").get(id)?.id ?? 'unknown';
-      throw new Error(`memory ${id} was already superseded by ${winnerId}`);
+      const winnerId = db.prepare("SELECT id FROM memories WHERE supersedes=? AND status!='proposed' ORDER BY rowid DESC LIMIT 1").get(id)?.id;
+      throw new Error(winnerId ? `memory ${id} was already superseded by ${winnerId}` : `memory ${id} is archived; nothing to supersede`);
     }
   }
 
