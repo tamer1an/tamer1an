@@ -35,3 +35,15 @@ test('validation', () => {
   assert.throws(() => f.post({ threadId: t.id, author: 'claude', body: 'x', kind: 'rant' }), /kind/);
   assert.deepEqual(mentions('@claude @Claude @nobody @claude'), ['claude']);
 });
+
+test('mentions need a word boundary: no emails, no longer names (argon review, Doubt Cycle 2)', () => {
+  assert.deepEqual(mentions('@local-deep hi, mail user@local or x.@local'), []);
+  assert.deepEqual(mentions('(@local), ping @argon.'), ['local', 'argon']);
+});
+
+test('inbox limit counts real mentions, not SQL LIKE hits', () => {
+  const f = forum();
+  const t = f.open({ title: 't', author: 'claude', body: '@local real one' });
+  for (let i = 0; i < 25; i++) f.post({ threadId: t.id, author: 'claude', body: `@local-deep noise ${i}` });
+  assert.deepEqual(f.inbox('local', { limit: 20 }).map((p) => p.body), ['@local real one']);
+});

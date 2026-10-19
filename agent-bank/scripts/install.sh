@@ -54,7 +54,7 @@ const want = [
 for (const w of want) if (!p.models.some((x) => x.id === w.id)) p.models.push(w);
 fs.writeFileSync(file, JSON.stringify(m, null, 2) + '\n');
 EOF
-say models "ollama: llama3.1-8k, deepseek-r1 32B"
+say models "ollama: qwen3-16k, llama3.1-8k, deepseek-r1 32B"
 
 # 3. Team roles for the subagent tool (symlinks, so edits in the repo apply immediately).
 for f in "$REPO"/pi/agents/*.md; do ln -sfn "$f" "$PI_DIR/agents/$(basename "$f")"; done

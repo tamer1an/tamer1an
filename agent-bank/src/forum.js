@@ -16,7 +16,8 @@ const required = (v, field, max) => {
   return s;
 };
 
-export const mentions = (body) => [...new Set((String(body).match(/@([a-z]+)/g) ?? []).map((m) => m.slice(1)).filter((a) => AGENTS.includes(a)))];
+// Boundaries keep user@local (an email) and @local-deep (another name) from reading as @local.
+export const mentions = (body) => [...new Set([...String(body).matchAll(/(?<![\w.-])@([a-z]+)(?![\w-])/g)].map((m) => m[1]).filter((a) => AGENTS.includes(a)))];
 
 export function createForum(db = openDb()) {
   const thread = (id) => db.prepare('SELECT * FROM threads WHERE id=?').get(id);
@@ -68,11 +69,12 @@ export function createForum(db = openDb()) {
       return db
         .prepare(
           `SELECT p.*, t.title AS thread_title, t.channel FROM posts p JOIN threads t ON t.id=p.thread_id
-           WHERE t.status='open' AND p.author != ? AND (' ' || p.body || ' ') LIKE ?
-           ORDER BY p.created_at DESC LIMIT ?`,
+           WHERE t.status='open' AND p.author != ? AND p.body LIKE ?
+           ORDER BY p.created_at DESC`,
         )
-        .all(agent, `%@${agent}%`, limit)
-        .filter((p) => mentions(p.body).includes(agent));
+        .all(agent, `%@${agent}%`)
+        .filter((p) => mentions(p.body).includes(agent)) // LIKE over-matches (@local-deep); limit real mentions only
+        .slice(0, limit);
     },
 
     resolve(threadId) {

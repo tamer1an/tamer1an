@@ -116,3 +116,10 @@ test('proposed supersede does not archive target until approved; conflicts on ap
   assert.equal(b.get(staleProp.id).status, 'proposed');
 });
 
+
+test('superseding a memory that was archived directly says so, not "superseded by unknown"', () => {
+  const b = bank();
+  const a = b.save(base);
+  b.archive(a.id);
+  assert.throws(() => b.save({ ...base, body: 'late fix', supersedes: a.id }), new RegExp(`memory ${a.id} is archived; nothing to supersede`));
+});
