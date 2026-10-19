@@ -21,6 +21,11 @@ async function withPage(fn) {
 }
 
 const [cmd, user = 'tamer1an'] = process.argv.slice(2);
+// The name goes into a URL and a CSS selector: accept only a valid GitHub login.
+if (!/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(user)) {
+  console.error(`not a GitHub username: ${user}`);
+  process.exit(2);
+}
 
 if (cmd === 'status') {
   const login = await withPage(async (page) => {
