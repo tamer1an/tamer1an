@@ -119,5 +119,7 @@ export async function delegate(bank, roleName, task, { threadId, requester = 'hu
     ? (bank.forum.post({ threadId, author: requester, kind: 'handoff', body: `@${r.identity} ${task}` }), bank.forum.read(threadId))
     : bank.forum.open({ title: `${roleName}: ${task.slice(0, 80)}`, channel: 'delegate', author: requester, kind: 'handoff', body: `@${r.identity} ${task}` });
   const post = bank.forum.post({ threadId: thread.id, author: r.identity, kind: 'answer', body });
+  // A thread we opened only for this handoff is done once answered; failures stay open for a human.
+  if (!threadId && r.code === 0 && !r.timedOut) bank.forum.resolve(thread.id);
   return { ...r, threadId: thread.id, postId: post.id };
 }

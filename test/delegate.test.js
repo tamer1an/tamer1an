@@ -58,6 +58,18 @@ test('delegate records the handoff and the answer on the forum', async () => {
   assert.equal(bank.forum.read(r.threadId).posts.length, 4);
 });
 
+test('a delegate thread is resolved once answered, left open on failure', async () => {
+  const bank = openBank(':memory:');
+  const ok = await delegate(bank, 'local', 'summarise', { requester: 'claude' });
+  assert.equal(bank.forum.read(ok.threadId).status, 'resolved');
+  assert.equal(bank.forum.inbox('local').length, 0, 'answered handoffs leave the inbox');
+  const failed = await delegate(bank, 'local', 'FAIL please', { requester: 'claude' });
+  assert.equal(bank.forum.read(failed.threadId).status, 'open');
+  const t = bank.forum.open({ title: 'existing', author: 'human' });
+  await delegate(bank, 'local', 'summarise', { threadId: t.id, requester: 'human' });
+  assert.equal(bank.forum.read(t.id).status, 'open', 'a thread the caller owns is not closed for them');
+});
+
 test('retries when a small model leaks a tool call as text', async () => {
   assert.equal(leakedToolCall('{"name": "memory_search", "parameters": {"q": 1}}'), true);
   assert.equal(leakedToolCall('The serial is TESTSERIAL01.'), false);
