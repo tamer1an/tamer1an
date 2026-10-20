@@ -1,7 +1,7 @@
 # Both upstreams bind to loopback and reject a foreign Host header (agent-bank: 421 "bad host",
 # Ollama: 403), as a DNS-rebinding guard. This proxy must rewrite Host to get past that guard, so it
-# re-imposes it first: only the tailnet name (short or MagicDNS FQDN) or a tailnet IP may come
-# through. A rebinding page on this machine sends its own domain and gets 421. agent-bank still
+# re-imposes it first: only the tailnet name (short, MagicDNS FQDN, or <name>.localhost for a
+# browser on this machine) or a tailnet IP may come through. A rebinding page on this machine sends its own domain and gets 421. agent-bank still
 # requires x-bank-token.
 {
 	admin off
@@ -9,7 +9,7 @@
 }
 
 (tailnet_only) {
-	@foreign not header_regexp Host (?i)^({$TS_HOSTNAME}(\.[a-z0-9-]+\.ts\.net)?|100\.\d+\.\d+\.\d+|\[fd7a:115c:a1e0:[0-9a-f:]+\])(:\d+)?$
+	@foreign not header_regexp Host (?i)^({$TS_HOSTNAME}(\.[a-z0-9-]+\.ts\.net|\.localhost)?|100\.\d+\.\d+\.\d+|\[fd7a:115c:a1e0:[0-9a-f:]+\])(:\d+)?$
 	respond @foreign "bad host" 421
 }
 
