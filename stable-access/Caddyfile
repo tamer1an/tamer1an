@@ -1,0 +1,22 @@
+# Both upstreams bind to loopback and reject a foreign Host header (agent-bank: 421 "bad host",
+# Ollama: 403), as a DNS-rebinding guard. Rewriting Host here keeps that guard intact for browsers
+# on this machine while letting tailnet clients through. agent-bank still requires x-bank-token.
+{
+	admin off
+	auto_https off
+}
+
+http://:17077 {
+	bind 127.0.0.1
+	reverse_proxy host.docker.internal:{$BANK_PORT} {
+		header_up Host 127.0.0.1:{$BANK_PORT}
+	}
+}
+
+http://:21434 {
+	bind 127.0.0.1
+	reverse_proxy host.docker.internal:{$OLLAMA_PORT} {
+		header_up Host localhost:{$OLLAMA_PORT}
+		flush_interval -1 # stream tokens as they arrive
+	}
+}
