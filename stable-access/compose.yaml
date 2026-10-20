@@ -1,19 +1,21 @@
 # Stable address for this machine's local services, whatever its LAN/Wi-Fi IP is.
 #
 #   tailnet device ──WireGuard──▶ tailscale (node "bank", fixed 100.x IP + MagicDNS name)
-#                                    │ serve.json: TCP 7077 / 11434 → 127.0.0.1 in this netns
+#                                    │ serve.json: TCP 7077 / 11434 → Caddy on 127.0.0.1
 #                                    ▼
-#                                  proxy (Caddy, same netns) ── rewrites Host ──▶ host.docker.internal
-#                                                                                 ├─ agent-bank :7077
-#                                                                                 └─ Ollama     :11434
+#                                  proxy (Caddy) ── rewrites Host ──▶ 127.0.0.1
+#                                                                     ├─ agent-bank :7077  (WSL)
+#                                                                     └─ Ollama     :11434 (Windows, via mirrored loopback)
 #
-# Nothing is published on the host's LAN interface and no router port is opened.
+# Both containers use the host network: the upstreams bind to loopback only, which a bridged
+# container can't reach on a native (non-Desktop) engine. Userspace Tailscale listens only on the
+# tailnet, Caddy only on 127.0.0.1, so nothing new appears on the LAN and no router port is opened.
 name: stable-access
 
 services:
   tailscale:
     image: tailscale/tailscale:v1.84.0
-    hostname: ${TS_HOSTNAME:-bank}
+    network_mode: host
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY:-}            # only needed for the first login; state persists in ts-state
       TS_HOSTNAME: ${TS_HOSTNAME:-bank}
@@ -25,8 +27,6 @@ services:
     volumes:
       - ts-state:/var/lib/tailscale
       - ./serve.json:/config/serve.json:ro
-    extra_hosts:
-      - host.docker.internal:host-gateway    # Docker Desktop already provides it; this keeps plain Engine working too
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9002/healthz"]
       interval: 30s
@@ -37,7 +37,7 @@ services:
 
   proxy:
     image: caddy:2.10.0-alpine
-    network_mode: service:tailscale          # listens on the tailscale container's loopback only
+    network_mode: host
     depends_on:
       tailscale:
         condition: service_healthy

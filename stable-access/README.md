@@ -26,11 +26,11 @@ change it, and anything that saved `10.0.0.15` breaks. What we actually want is:
 | Tailscale installed on Windows + `tailscale serve` | yes | yes | tailnet | 1 app | Simplest, but `serve` keeps the original `Host`, which both upstreams reject |
 
 **Decision:** a userspace Tailscale node in Docker gives the machine a permanent identity on a
-private WireGuard mesh, and a Caddy sidecar in the same network namespace rewrites `Host` before
-forwarding to `host.docker.internal`. WireGuard roams, so peers reconnect on their own after an
-IP change. `host.docker.internal` is maintained by Docker, so the proxy never needs the host's IP
-either. No Dockerfile is needed: two pinned official images beat a custom build you have to
-maintain.
+private WireGuard mesh, and a Caddy container rewrites `Host` before forwarding to loopback. Both
+run on the host network because the upstreams listen on `127.0.0.1` only. WireGuard roams, so
+peers reconnect on their own after an IP change. The proxy only ever talks to `127.0.0.1`, so it
+never needs the host's IP either. No Dockerfile is needed: two pinned official images beat a
+custom build you have to maintain.
 
 ## Trade-offs (accepted)
 
@@ -61,10 +61,15 @@ After that, clients use `http://bank:7077` (header `x-bank-token: $(bank token)`
 `docker compose down` stops access. `docker compose down -v` also deletes the node identity;
 then remove `bank` in the Tailscale admin console. Nothing on the host was changed.
 
-## Known risk to verify first
+## Prerequisite: a running Docker engine in WSL
 
-On Docker Desktop for Windows with WSL `networkingMode=mirrored`, `host.docker.internal` is
-expected to reach services bound to `127.0.0.1` inside WSL, because Docker Desktop dials the
-Windows loopback and mirrored mode shares it with WSL. Check 2 in `check.sh` confirms this. If it
-fails, the fallback is to run `bank serve` on the Windows side, or install Tailscale on Windows
-directly and keep only the Caddy container.
+This machine uses Docker Engine installed in Ubuntu (not Docker Desktop), and WSL starts without
+systemd, so `dockerd` never starts. Enable systemd once:
+
+```bash
+printf '\n[boot]\nsystemd=true\n' | sudo tee -a /etc/wsl.conf
+wsl.exe --shutdown          # then reopen the terminal
+docker ps                   # should list (no) containers instead of erroring
+```
+
+Ollama runs on Windows and is reached at `127.0.0.1:11434` through `networkingMode=mirrored`.

@@ -8,14 +8,14 @@
 
 http://:17077 {
 	bind 127.0.0.1
-	reverse_proxy host.docker.internal:{$BANK_PORT} {
+	reverse_proxy 127.0.0.1:{$BANK_PORT} {
 		header_up Host 127.0.0.1:{$BANK_PORT}
 	}
 }
 
 http://:21434 {
 	bind 127.0.0.1
-	reverse_proxy host.docker.internal:{$OLLAMA_PORT} {
+	reverse_proxy 127.0.0.1:{$OLLAMA_PORT} {
 		header_up Host localhost:{$OLLAMA_PORT}
 		flush_interval -1 # stream tokens as they arrive
 	}
