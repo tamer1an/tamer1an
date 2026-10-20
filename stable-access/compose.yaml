@@ -42,6 +42,7 @@ services:
       tailscale:
         condition: service_healthy
     environment:
+      TS_HOSTNAME: ${TS_HOSTNAME:-bank}      # Caddyfile only admits this name or a tailnet IP as Host
       BANK_PORT: ${BANK_PORT:-7077}
       OLLAMA_PORT: ${OLLAMA_PORT:-11434}
     volumes:

@@ -38,9 +38,10 @@ custom build you have to maintain.
   working briefly if it goes away. To remove this dependency, self-host Headscale.
 - **Clients must be in the tailnet**, which means the Tailscale app on each device. That's the
   point: access requires being enrolled.
-- **The Host rewrite bypasses the DNS-rebinding guard for tailnet traffic only.** On this machine
-  the guard still applies, and agent-bank still requires `x-bank-token`. Use tailnet ACLs if
-  other people share the tailnet.
+- **The proxy rewrites Host, so it re-imposes the DNS-rebinding guard itself.** Only the tailnet
+  name, its MagicDNS FQDN or a tailnet IP is admitted; anything else gets 421 (verified: a forged
+  `Host: evil.example` returned Ollama's model list before this check, 421 after). agent-bank
+  still requires `x-bank-token`. Use tailnet ACLs if other people share the tailnet.
 - **Plain HTTP over the tailnet.** WireGuard already encrypts it end to end. If a browser needs
   HTTPS, add `"Web"` handlers to `serve.json` (Tailscale issues the cert).
 

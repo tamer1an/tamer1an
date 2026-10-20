@@ -19,6 +19,7 @@ fi
 step "1. agent-bank on this host" curl -fsS -m 3 "http://127.0.0.1:$bank_port/health"
 step "1. Ollama on this host" curl -fsS -m 3 "http://127.0.0.1:$ollama_port/api/version"
 step "2. tailscale is logged in" docker compose exec -T tailscale tailscale status --peers=false
-step "2. proxy rewrites Host and reaches agent-bank" docker compose exec -T proxy wget -qO- -T 5 "http://127.0.0.1:17077/health"
+step "2. proxy rewrites Host and reaches agent-bank" curl -fsS -m 5 -H "Host: $host:$bank_port" http://127.0.0.1:17077/health
+step "2. proxy refuses a foreign Host (rebinding)" sh -c '[ "$(curl -s -o /dev/null -w %{http_code} -m 5 -H "Host: evil.example" http://127.0.0.1:21434/api/tags)" = 421 ]'
 docker compose exec -T tailscale tailscale ip -4 2>/dev/null | sed 's/^/   stable tailnet IP: /'
 exit $fail
